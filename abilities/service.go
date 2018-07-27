@@ -4,8 +4,9 @@ import (
 	"context"
 	"github.com/satori/go.uuid"
 	"github.com/jinzhu/gorm"
-	//"github.com/davecgh/go-spew/spew"
-	"errors"
+
+	"fmt"
+	"gokit-practice/util"
 )
 
 type Ability struct {
@@ -35,24 +36,32 @@ func NewService(db *gorm.DB) Service {
 func (s *service) CreateAbility(ctx context.Context, a Ability) (Ability, error) {
 	db := s.db.Create(&a)
 
-	return a, db.Error
+	if db.Error != nil {
+		return a, util.NewUnexpectedError(db.Error)
+	}
+
+	return a, nil
 }
 
 func (s *service) UpdateAbility(ctx context.Context, a Ability) (Ability, error) {
 	db := s.db.Save(&a)
 
-	return a, db.Error
+	if db.Error != nil {
+		return a, util.NewUnexpectedError(db.Error)
+	}
+
+	return a, nil
 }
 
 func (s *service) DeleteAbility(ctx context.Context, a Ability) (error) {
 	db := s.db.Delete(&a)
 
 	if db.Error != nil {
-		return db.Error
+		return util.NewUnexpectedError(db.Error)
 	}
 
 	if db.RowsAffected == 0 {
-		return errors.New("trying to delete non existent Ability")
+		return util.NewError(AbilityDNE, "trying to delete non-existent Ability")
 	}
 
 	return nil
@@ -63,3 +72,8 @@ func (s *service) DeleteAbility(ctx context.Context, a Ability) (error) {
 //
 //	return a, db.Error
 //}
+
+
+const (
+	AbilityDNE     = "ABILITY_DNE"
+)

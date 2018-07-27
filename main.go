@@ -32,7 +32,6 @@ func main() {
 
 	spew.Dump(err)
 
-
 	//// test
 	//abilitiesService := abilities.NewService(db)
 	//createAbility := abilities.MakeCreateAbilityEndpoint(abilitiesService)
