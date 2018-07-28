@@ -5,70 +5,50 @@ import (
 	"context"
 )
 
-type createAbilityRequest struct {
+type abilityWriteRequest struct {
 	Ability Ability
 }
 
-type createAbilityResponse struct {
+type abilityWriteResponse struct {
 	Ability Ability
 	Err     error
+}
+
+type serviceMethod func(context.Context, Ability) (Ability, error)
+
+func makeWriteEndpoint(serviceMethod serviceMethod) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(abilityWriteRequest)
+		ability, err := serviceMethod(ctx, req.Ability)
+		return abilityWriteResponse{Ability: ability}, err // todo where should err be passed into
+	}
 }
 
 func MakeCreateAbilityEndpoint(s Service) endpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(createAbilityRequest)
-		ability, err := s.CreateAbility(ctx, req.Ability)
-		return createAbilityResponse{Ability: ability}, err
-	}
-}
-
-type updateAbilityRequest struct {
-	Ability Ability
-}
-
-type updateAbilityResponse struct {
-	Ability Ability
-	Err     error
+	return makeWriteEndpoint(s.CreateAbility)
 }
 
 func MakeUpdateAbilityEndpoint(s Service) endpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(updateAbilityRequest)
-		ability, err := s.UpdateAbility(ctx, req.Ability)
-		return updateAbilityResponse{Ability: ability}, err
-	}
-}
-
-type deleteAbilityRequest struct {
-	Ability Ability
-}
-
-type deleteAbilityResponse struct {
+	return makeWriteEndpoint(s.UpdateAbility)
 }
 
 func MakeDeleteAbilityEndpoint(s Service) endpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(deleteAbilityRequest)
-		err := s.DeleteAbility(ctx, req.Ability)
-		return deleteAbilityResponse{}, err
-	}
+	return makeWriteEndpoint(s.DeleteAbility)
 }
 
-//type GetAbilityRequest struct {
-//	Ability Ability
-//}
-//
-//type getAbilityResponse struct {
-//	Ability Ability
-//	Err     error
-//}
-//
-//func MakeGetAbilityEndpoint(s Service) endpoint.Endpoint {
-//	return func(ctx context.Context, request interface{}) (interface{}, error) {
-//		req := request.(GetAbilityRequest)
-//		ability, err := s.GetAbility(ctx, req.Ability)
-//		return getAbilityResponse{Ability: ability}, err
-//	}
-//}
+type abilitiesReadRequest struct {
+	OwnerId string
+}
 
+type abilitiesReadResponse struct {
+	Abilities []Ability
+	Err       error
+}
 
+func MakeGetAbilitiesByOwnerIdEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(abilitiesReadRequest)
+		abilities, err := s.GetAbilitiesByOwnerId(ctx, req.OwnerId)
+		return abilitiesReadResponse{Abilities: abilities}, err
+	}
+}

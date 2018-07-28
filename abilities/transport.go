@@ -6,78 +6,59 @@ import (
 	"encoding/json"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
-	//"github.com/satori/go.uuid"
+	"github.com/go-kit/kit/log"
 )
 
-func MakeHTTPHandler(s Service) http.Handler {
+func MakeHTTPHandler(s Service, l log.Logger) http.Handler {
 	r := mux.NewRouter()
+
+	getAbilitiesByOwnerIdEndpoint := MakeGetAbilitiesByOwnerIdEndpoint(s)
+	getAbilitiesByOwnerIdEndpoint = loggingMiddleware(log.With(l, "foo", "bar"))(getAbilitiesByOwnerIdEndpoint)
 
 	createAbilityEndpoint := MakeCreateAbilityEndpoint(s)
 	updateAbilityEndpoint := MakeUpdateAbilityEndpoint(s)
 	deleteAbilityEndpoint := MakeDeleteAbilityEndpoint(s)
-	//getAbilityEndpoint := MakeGetAbilityEndpoint(s)
+
+	r.Methods("GET").Path("/owner/{ownerId}/abilities").Handler(httptransport.NewServer(
+		getAbilitiesByOwnerIdEndpoint,
+		decodeAbilitiesReadRequest,
+		encodeResponse,
+	))
 
 	r.Methods("POST").Path("/abilities").Handler(httptransport.NewServer(
 		createAbilityEndpoint,
-		decodeCreateAbilityRequest,
+		decodeAbilityWriteRequest,
 		encodeResponse,
 	))
 
 	r.Methods("PUT").Path("/abilities").Handler(httptransport.NewServer(
 		updateAbilityEndpoint,
-		decodeUpdateAbilityRequest,
+		decodeAbilityWriteRequest,
 		encodeResponse,
 	))
 
 	r.Methods("DELETE").Path("/abilities").Handler(httptransport.NewServer(
 		deleteAbilityEndpoint,
-		decodeDeleteAbilityRequest,
+		decodeAbilityWriteRequest,
 		encodeResponse,
 	))
-
-	//r.Methods("GET").Path("/test").Handler(httptransport.NewServer(
-	//	getAbilityEndpoint,
-	//	decodeGetAbilityRequest,
-	//	encodeResponse,
-	//))
 
 	return r
 }
 
-func decodeCreateAbilityRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	var req createAbilityRequest
+func decodeAbilityWriteRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req abilityWriteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req.Ability); err != nil {
 		return nil, err
 	}
 	return req, nil
 }
 
-func decodeUpdateAbilityRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	var req updateAbilityRequest
-	if err := json.NewDecoder(r.Body).Decode(&req.Ability); err != nil {
-		return nil, err
-	}
-	return req, nil
+func decodeAbilitiesReadRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	return abilitiesReadRequest{
+		OwnerId: mux.Vars(r)["ownerId"],
+	}, nil
 }
-
-func decodeDeleteAbilityRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	var req deleteAbilityRequest
-	if err := json.NewDecoder(r.Body).Decode(&req.Ability); err != nil {
-		return nil, err
-	}
-	return req, nil
-}
-
-
-
-//func decodeGetAbilityRequest(_ context.Context, r *http.Request) (interface{}, error) {
-//	var req GetAbilityRequest
-//	if err := json.NewDecoder(r.Body).Decode(&req.Ability); err != nil {
-//		return nil, err
-//	}
-//	return req, nil
-//}
-
 
 func encodeResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
 	return json.NewEncoder(w).Encode(response)

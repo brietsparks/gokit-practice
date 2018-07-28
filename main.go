@@ -10,10 +10,11 @@ import (
 	"net/http"
 	"github.com/davecgh/go-spew/spew"
 	//"github.com/satori/go.uuid"
+	"github.com/go-kit/kit/log"
 )
 
 func main() {
-	//logger := log.NewLogfmtLogger(os.Stderr)
+	logger := log.NewLogfmtLogger(os.Stderr)
 
 	env := GetEnv()
 
@@ -24,7 +25,7 @@ func main() {
 	defer db.Close()
 
 	abilitiesService := abilities.NewService(db)
-	r := abilities.MakeHTTPHandler(abilitiesService)
+	r := abilities.MakeHTTPHandler(abilitiesService, logger)
 
 	spew.Dump("Starting server")
 
