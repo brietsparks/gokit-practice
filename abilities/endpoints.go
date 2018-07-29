@@ -18,7 +18,7 @@ func makeWriteEndpoint(method serviceWriteMethod) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(abilityWriteRequest)
 		ability, err := method(req.Ability)
-		return abilityWriteResponse{Ability: ability}, err // todo where should err be passed into
+		return abilityWriteResponse{Ability: ability, Err: err}, nil
 	}
 }
 
@@ -47,6 +47,6 @@ func MakeGetAbilitiesByOwnerIdEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(abilitiesReadRequest)
 		abilities, err := s.GetAbilitiesByOwnerId(req.OwnerId)
-		return abilitiesReadResponse{Abilities: abilities}, err
+		return abilitiesReadResponse{Abilities: abilities, Err: err}, nil
 	}
 }

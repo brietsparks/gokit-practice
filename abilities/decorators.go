@@ -3,7 +3,7 @@ package abilities
 import (
 	"github.com/go-kit/kit/log"
 	"time"
-	"encoding/json"
+	"gokit-practice/util"
 )
 
 type serviceWithLogger struct {
@@ -32,59 +32,32 @@ func writeAbilityWithLogger(logger log.Logger, method serviceWriteMethod, input 
 	output, err := method(input)
 	end := time.Now()
 
-	logEntry := logEntry{
-		method: methodName,
-		input: input,
-		output: output,
-		err: err,
-		begin: begin,
-		end: end,
-	}
-	logMethodCall(logger, logEntry)
+	util.LogFunctionCall(logger, util.LogEntry{
+		Function: methodName,
+		Input: input,
+		Output: output,
+		Err: err,
+		Begin: begin,
+		End: end,
+	})
 
 	return output, err
 }
 
-type logEntry struct {
-	method string
-	input interface{}
-	output interface{}
-	err error
-	begin time.Time
-	end time.Time
-}
-
-
-func logMethodCall(logger log.Logger, entry logEntry) {
-	input, _ := json.Marshal(entry.input)
-	output, _ := json.Marshal(entry.output)
-	logger.Log(
-		"method", entry.method,
-		"input", input,
-		"output", output,
-		"err", entry.err,
-		"began", entry.begin,
-		"end", entry.end,
-		"took", entry.end.Sub(entry.begin),
-	)
-}
-
 
 func (s *serviceWithLogger) GetAbilitiesByOwnerId(input string) ([]Ability, error) {
-	var output []Ability
-	var err error
+	begin := time.Now()
+	output, err := s.Service.GetAbilitiesByOwnerId(input)
+	end := time.Now()
 
-	defer func(begin time.Time) {
-		output, _ := json.Marshal(output)
-		s.logger.Log(
-			"method", "GetAbilitiesByOwnerId",
-			"input", input,
-			"output", string(output),
-			"err", err,
-			"took", time.Since(begin),
-		)
-	}(time.Now())
+	util.LogFunctionCall(s.logger, util.LogEntry{
+		Function: "GetAbilitiesByOwnerId",
+		Input: input,
+		Output: output,
+		Err: err,
+		Begin: begin,
+		End: end,
+	})
 
-	output, err = s.Service.GetAbilitiesByOwnerId(input)
 	return output, err
 }

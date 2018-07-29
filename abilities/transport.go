@@ -14,7 +14,7 @@ func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 	r := mux.NewRouter()
 
 	getAbilitiesByOwnerIdEndpoint := MakeGetAbilitiesByOwnerIdEndpoint(s)
-	getAbilitiesByOwnerIdEndpoint = loggingMiddleware(log.With(logger, "foo", "bar"))(getAbilitiesByOwnerIdEndpoint)
+	getAbilitiesByOwnerIdEndpoint = loggingMiddleware(log.With(logger))(getAbilitiesByOwnerIdEndpoint, "getAbilitiesByOwnerIdEndpoint")
 
 	createAbilityEndpoint := MakeCreateAbilityEndpoint(s)
 	updateAbilityEndpoint := MakeUpdateAbilityEndpoint(s)

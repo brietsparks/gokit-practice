@@ -1,14 +1,18 @@
 package util
 
-import "fmt"
+import (
+	"fmt"
+	"encoding/json"
+)
 
 type appError struct{
-	code          string
-	message       string
+	Code          string
+	Message       string
 }
 
 func (err *appError) Error() string {
-	return fmt.Sprintln("error " + err.code + ": " + err.message)
+	str, _ := json.Marshal(err)
+	return fmt.Sprintln(string(str))
 }
 
 const (
@@ -17,14 +21,14 @@ const (
 
 func NewUnexpectedError(err error) error {
 	return &appError{
-		code: UnexpectedError,
-		message: err.Error(),
+		Code: UnexpectedError,
+		Message: err.Error(),
 	}
 }
 
 func NewError(code string, message string) error {
 	return &appError{
-		code: code,
-		message: message,
+		Code: code,
+		Message: message,
 	}
 }

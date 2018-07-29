@@ -22,7 +22,6 @@ func main() {
 
 
 	env := GetEnv()
-
 	db, _ := gorm.Open(
 		"postgres",
 		"host="+env.dbHost+" port="+env.dbPort+" user="+env.dbUser+" dbname="+env.dbName+" sslmode=disable",
