@@ -14,7 +14,12 @@ import (
 )
 
 func main() {
-	logger := log.NewLogfmtLogger(os.Stderr)
+	//httpLogger := log.NewLogfmtLogger(os.Stderr)
+	var logger log.Logger
+	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
+	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
+	httpLogger := log.With(logger, "component", "http")
+
 
 	env := GetEnv()
 
@@ -25,7 +30,8 @@ func main() {
 	defer db.Close()
 
 	abilitiesService := abilities.NewService(db)
-	r := abilities.MakeHTTPHandler(abilitiesService, logger)
+	abilitiesService = abilities.WithLogger(logger, abilitiesService)
+	r := abilities.MakeHTTPHandler(abilitiesService, httpLogger)
 
 	spew.Dump("Starting server")
 

@@ -1,7 +1,6 @@
 package abilities
 
 import (
-	"context"
 	"github.com/satori/go.uuid"
 	"github.com/jinzhu/gorm"
 	"gokit-practice/util"
@@ -13,18 +12,20 @@ type Ability struct {
 	Caption string
 }
 
+type serviceWriteMethod func(Ability) (Ability, error)
+
 type Service interface {
-	GetAbilitiesByOwnerId(ctx context.Context, ownerId string) ([]Ability, error)
-	CreateAbility(ctx context.Context, a Ability) (Ability, error)
-	UpdateAbility(ctx context.Context, a Ability) (Ability, error)
-	DeleteAbility(ctx context.Context, a Ability) (Ability, error)
+	GetAbilitiesByOwnerId(ownerId string) ([]Ability, error)
+	CreateAbility(a Ability) (Ability, error)
+	UpdateAbility(a Ability) (Ability, error)
+	DeleteAbility(a Ability) (Ability, error)
 }
 
 type service struct {
 	db *gorm.DB
 }
 
-func NewService(db *gorm.DB) *service {
+func NewService(db *gorm.DB) Service {
 	return &service{
 		db: db,
 	}
@@ -34,7 +35,7 @@ const (
 	AbilityDNE     = "ABILITY_DNE"
 )
 
-func (s *service) GetAbilitiesByOwnerId(ctx context.Context, ownerId string) ([]Ability, error) {
+func (s *service) GetAbilitiesByOwnerId(ownerId string) ([]Ability, error) {
 	var a []Ability
 	s.db.Where("owner_id = ?", ownerId).Find(&a)
 
@@ -45,7 +46,7 @@ func (s *service) GetAbilitiesByOwnerId(ctx context.Context, ownerId string) ([]
 	return a, nil
 }
 
-func (s *service) CreateAbility(ctx context.Context, a Ability) (Ability, error) {
+func (s *service) CreateAbility(a Ability) (Ability, error) {
 	db := s.db.Create(&a)
 
 	if db.Error != nil {
@@ -55,7 +56,7 @@ func (s *service) CreateAbility(ctx context.Context, a Ability) (Ability, error)
 	return a, nil
 }
 
-func (s *service) UpdateAbility(ctx context.Context, a Ability) (Ability, error) {
+func (s *service) UpdateAbility(a Ability) (Ability, error) {
 	db := s.db.Save(&a)
 
 	if db.Error != nil {
@@ -65,7 +66,7 @@ func (s *service) UpdateAbility(ctx context.Context, a Ability) (Ability, error)
 	return a, nil
 }
 
-func (s *service) DeleteAbility(ctx context.Context, a Ability) (Ability, error) {
+func (s *service) DeleteAbility(a Ability) (Ability, error) {
 	db := s.db.Delete(&a)
 
 	if db.Error != nil {

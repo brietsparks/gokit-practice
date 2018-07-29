@@ -9,11 +9,12 @@ import (
 	"github.com/go-kit/kit/log"
 )
 
-func MakeHTTPHandler(s Service, l log.Logger) http.Handler {
+func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
+
 	r := mux.NewRouter()
 
 	getAbilitiesByOwnerIdEndpoint := MakeGetAbilitiesByOwnerIdEndpoint(s)
-	getAbilitiesByOwnerIdEndpoint = loggingMiddleware(log.With(l, "foo", "bar"))(getAbilitiesByOwnerIdEndpoint)
+	getAbilitiesByOwnerIdEndpoint = loggingMiddleware(log.With(logger, "foo", "bar"))(getAbilitiesByOwnerIdEndpoint)
 
 	createAbilityEndpoint := MakeCreateAbilityEndpoint(s)
 	updateAbilityEndpoint := MakeUpdateAbilityEndpoint(s)

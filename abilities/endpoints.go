@@ -14,12 +14,10 @@ type abilityWriteResponse struct {
 	Err     error
 }
 
-type serviceMethod func(context.Context, Ability) (Ability, error)
-
-func makeWriteEndpoint(serviceMethod serviceMethod) endpoint.Endpoint {
+func makeWriteEndpoint(method serviceWriteMethod) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(abilityWriteRequest)
-		ability, err := serviceMethod(ctx, req.Ability)
+		ability, err := method(req.Ability)
 		return abilityWriteResponse{Ability: ability}, err // todo where should err be passed into
 	}
 }
@@ -48,7 +46,7 @@ type abilitiesReadResponse struct {
 func MakeGetAbilitiesByOwnerIdEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(abilitiesReadRequest)
-		abilities, err := s.GetAbilitiesByOwnerId(ctx, req.OwnerId)
+		abilities, err := s.GetAbilitiesByOwnerId(req.OwnerId)
 		return abilitiesReadResponse{Abilities: abilities}, err
 	}
 }
