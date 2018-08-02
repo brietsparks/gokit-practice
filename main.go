@@ -32,8 +32,8 @@ func main() {
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 	httpLogger := log.With(logger, "component", "http")
 
-	// auth mw
-	authMw := auth.NewMiddleware(auth.Env{
+	/* HTTP Middleware */
+	jwtChecker := auth.NewJwtChecker(auth.Env{
 		Aud: env.authAud,
 		Iss: env.authIss,
 		JwksEndpoint: env.authJwksEndpoint,
@@ -44,7 +44,7 @@ func main() {
 	abilitiesService = abilities.WithLogger(logger, abilitiesService)
 
 	// Router
-	r := abilities.MakeHTTPHandler(abilitiesService, httpLogger, authMw)
+	r := abilities.MakeHTTPHandler(abilitiesService, httpLogger, jwtChecker)
 
 	// Start
 	spew.Dump("Starting server")

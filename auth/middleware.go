@@ -6,6 +6,8 @@ import (
 	"errors"
 	"github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/go-kit/kit/log"
+	"github.com/codegangsta/negroni"
 )
 
 type JSONWebKeys struct {
@@ -27,13 +29,21 @@ type Env struct {
 	JwksEndpoint string
 }
 
-func NewMiddleware(env Env) *jwtmiddleware.JWTMiddleware {
+func NewJwtChecker(env Env) *jwtmiddleware.JWTMiddleware {
 	getValidationKey := makeGetValidationKey(env)
 
 	return jwtmiddleware.New(jwtmiddleware.Options{
 		ValidationKeyGetter: getValidationKey,
 		SigningMethod:       jwt.SigningMethodRS256,
 	})
+}
+
+func NewAuthenticator(logger log.Logger) negroni.HandlerFunc {
+	return func(writer http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
+		//user := req.Context().Value("user")
+		//sub, _ := user.(*jwt.Token).Claims.(jwt.MapClaims)["sub"].(string)
+		next.ServeHTTP(writer, req)
+	}
 }
 
 func makeGetValidationKey(env Env) jwt.Keyfunc {

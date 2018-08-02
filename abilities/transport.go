@@ -9,48 +9,48 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/auth0/go-jwt-middleware"
 	"github.com/codegangsta/negroni"
+	"gokit-practice/util"
+	"github.com/go-kit/kit/endpoint"
 )
 
-func MakeHTTPHandler(s Service, logger log.Logger, jwtMw *jwtmiddleware.JWTMiddleware) http.Handler {
-
+func MakeHTTPHandler(
+	s Service,
+	logger log.Logger,
+	jwtChecker *jwtmiddleware.JWTMiddleware,
+) http.Handler {
 	r := mux.NewRouter()
 
 	getAbilitiesByOwnerIdEndpoint := MakeGetAbilitiesByOwnerIdEndpoint(s)
 	getAbilitiesByOwnerIdEndpoint = loggingMiddleware(log.With(logger))(getAbilitiesByOwnerIdEndpoint, "getAbilitiesByOwnerIdEndpoint")
 
 	createAbilityEndpoint := MakeCreateAbilityEndpoint(s)
+	createAbilityEndpoint = loggingMiddleware(log.With(logger))(createAbilityEndpoint, "createAbilityEndpoint")
+
 	updateAbilityEndpoint := MakeUpdateAbilityEndpoint(s)
 	deleteAbilityEndpoint := MakeDeleteAbilityEndpoint(s)
 
-
-	getAbilitiesByOwnerIdHandler := negroni.New(
-		negroni.HandlerFunc(jwtMw.HandlerWithNext),
-		negroni.Wrap(httptransport.NewServer(
-			getAbilitiesByOwnerIdEndpoint,
-			decodeAbilitiesReadRequest,
-			encodeResponse,
-		)),
+	getAbilitiesByOwnerIdHandler := httptransport.NewServer(
+		getAbilitiesByOwnerIdEndpoint,
+		decodeAbilitiesReadRequest,
+		util.EncodeResponse,
 	)
 
+	makeWriteHandler := func(endpoint endpoint.Endpoint) http.Handler {
+		writeHandler := httptransport.NewServer(endpoint, decodeAbilityWriteRequest, util.EncodeResponse)
+		return negroni.New(
+			negroni.HandlerFunc(jwtChecker.HandlerWithNext),
+			negroni.Wrap(writeHandler),
+		)
+	}
+
+	createAbilityHandler := makeWriteHandler(createAbilityEndpoint)
+	updateAbilityHandler := makeWriteHandler(updateAbilityEndpoint)
+	deleteAbilityHandler := makeWriteHandler(deleteAbilityEndpoint)
+
 	r.Methods("GET").Path("/owner/{ownerId}/abilities").Handler(getAbilitiesByOwnerIdHandler)
-
-	r.Methods("POST").Path("/abilities").Handler(httptransport.NewServer(
-		createAbilityEndpoint,
-		decodeAbilityWriteRequest,
-		encodeResponse,
-	))
-
-	r.Methods("PUT").Path("/abilities").Handler(httptransport.NewServer(
-		updateAbilityEndpoint,
-		decodeAbilityWriteRequest,
-		encodeResponse,
-	))
-
-	r.Methods("DELETE").Path("/abilities").Handler(httptransport.NewServer(
-		deleteAbilityEndpoint,
-		decodeAbilityWriteRequest,
-		encodeResponse,
-	))
+	r.Methods("POST").Path("/abilities").Handler(createAbilityHandler)
+	r.Methods("PUT").Path("/abilities").Handler(updateAbilityHandler)
+	r.Methods("DELETE").Path("/abilities").Handler(deleteAbilityHandler)
 
 	return r
 }
@@ -67,8 +67,4 @@ func decodeAbilitiesReadRequest(_ context.Context, r *http.Request) (interface{}
 	return abilitiesReadRequest{
 		OwnerId: mux.Vars(r)["ownerId"],
 	}, nil
-}
-
-func encodeResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
-	return json.NewEncoder(w).Encode(response)
 }
