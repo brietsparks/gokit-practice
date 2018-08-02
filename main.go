@@ -11,16 +11,14 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	//"github.com/satori/go.uuid"
 	"github.com/go-kit/kit/log"
+	_ "github.com/auth0/go-jwt-middleware"
+	_ "github.com/dgrijalva/jwt-go"
+	_ "github.com/codegangsta/negroni"
+	"gokit-practice/auth"
 )
 
 func main() {
-	//httpLogger := log.NewLogfmtLogger(os.Stderr)
-	var logger log.Logger
-	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
-	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
-	httpLogger := log.With(logger, "component", "http")
-
-
+	// DB
 	env := GetEnv()
 	db, _ := gorm.Open(
 		"postgres",
@@ -28,63 +26,41 @@ func main() {
 	)
 	defer db.Close()
 
+	// logger
+	var logger log.Logger
+	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
+	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
+	httpLogger := log.With(logger, "component", "http")
+
+	// auth mw
+	authMw := auth.NewMiddleware(auth.Env{
+		Aud: env.authAud,
+		Iss: env.authIss,
+		JwksEndpoint: env.authJwksEndpoint,
+	})
+
+	// Services
 	abilitiesService := abilities.NewService(db)
 	abilitiesService = abilities.WithLogger(logger, abilitiesService)
-	r := abilities.MakeHTTPHandler(abilitiesService, httpLogger)
 
+	// Router
+	r := abilities.MakeHTTPHandler(abilitiesService, httpLogger, authMw)
+
+	// Start
 	spew.Dump("Starting server")
-
-	err := http.ListenAndServe(":3000", r)
-
+	err := http.ListenAndServe(":"+env.httpPort, r)
 	spew.Dump(err)
-
-	//// test
-	//abilitiesService := abilities.NewService(db)
-	//createAbility := abilities.MakeCreateAbilityEndpoint(abilitiesService)
-	//abilityID := uuid.NewV4()
-	//ownerID := uuid.NewV4() //uuid.FromString("3eac1204-da1d-42a3-8b24-08e884fbe72e")
-	//ability := abilities.Ability{
-	//	ID: abilityID,
-	//	OwnerId: ownerID,
-	//	Caption: "asdf",
-	//}
-	//abilityRequest := abilities.CreateAbilityRequest{
-	//	Ability: ability,
-	//}
-	//a, err := createAbility(nil, abilityRequest)
-	//spew.Dump(a, err)
-
-
-	//var a []abilities.Ability
-	////db.Find(&a)
-	//db.Where("owner_id = ?", "3eac1204-da1d-42a3-8b24-08e884fbe72e").Find(&a)
-	//spew.Dump(a)
-
-
-	//getAbility := abilities.MakeGetAbilityEndpoint(abilitiesService)
-	//abilityID, _ := uuid.FromString("569e699f-a98d-4651-b3e9-c27ea308a518")
-	//ownerID, _ := uuid.FromString("3eac1204-da1d-42a3-8b24-08e884fbe72e")
-	//
-	//ability := abilities.Ability{
-	//	ID: abilityID,
-	//	OwnerId: ownerID,
-	//}
-	//
-	//abilityRequest := abilities.GetAbilityRequest{
-	//	Ability: ability,
-	//}
-	//
-	//a, err := getAbility(nil, abilityRequest)
-	//
-	//spew.Dump(a, err)
 }
 
 type Env struct {
-	dbHost   string
-	dbPort   string
-	dbUser   string
-	dbName   string
-	httpPort string
+	dbHost           string
+	dbPort           string
+	dbUser           string
+	dbName           string
+	httpPort         string
+	authAud          string
+	authIss          string
+	authJwksEndpoint string
 }
 
 func GetEnv() *Env {
@@ -95,10 +71,13 @@ func GetEnv() *Env {
 	}
 
 	return &Env{
-		dbHost:   os.Getenv("DB_HOST"),
-		dbPort:   os.Getenv("DB_PORT"),
-		dbUser:   os.Getenv("DB_USER"),
-		dbName:   os.Getenv("DB_NAME"),
-		httpPort: os.Getenv("HTTP_PORT"),
+		dbHost:           os.Getenv("DB_HOST"),
+		dbPort:           os.Getenv("DB_PORT"),
+		dbUser:           os.Getenv("DB_USER"),
+		dbName:           os.Getenv("DB_NAME"),
+		httpPort:         os.Getenv("HTTP_PORT"),
+		authAud:          os.Getenv("AUTH_AUD"),
+		authIss:          os.Getenv("AUTH_ISS"),
+		authJwksEndpoint: os.Getenv("AUTH_JWKS_ENDPOINT"),
 	}
 }

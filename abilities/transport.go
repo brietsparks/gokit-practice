@@ -7,9 +7,11 @@ import (
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/go-kit/kit/log"
+	"github.com/auth0/go-jwt-middleware"
+	"github.com/codegangsta/negroni"
 )
 
-func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
+func MakeHTTPHandler(s Service, logger log.Logger, jwtMw *jwtmiddleware.JWTMiddleware) http.Handler {
 
 	r := mux.NewRouter()
 
@@ -20,11 +22,17 @@ func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 	updateAbilityEndpoint := MakeUpdateAbilityEndpoint(s)
 	deleteAbilityEndpoint := MakeDeleteAbilityEndpoint(s)
 
-	r.Methods("GET").Path("/owner/{ownerId}/abilities").Handler(httptransport.NewServer(
-		getAbilitiesByOwnerIdEndpoint,
-		decodeAbilitiesReadRequest,
-		encodeResponse,
-	))
+
+	getAbilitiesByOwnerIdHandler := negroni.New(
+		negroni.HandlerFunc(jwtMw.HandlerWithNext),
+		negroni.Wrap(httptransport.NewServer(
+			getAbilitiesByOwnerIdEndpoint,
+			decodeAbilitiesReadRequest,
+			encodeResponse,
+		)),
+	)
+
+	r.Methods("GET").Path("/owner/{ownerId}/abilities").Handler(getAbilitiesByOwnerIdHandler)
 
 	r.Methods("POST").Path("/abilities").Handler(httptransport.NewServer(
 		createAbilityEndpoint,
